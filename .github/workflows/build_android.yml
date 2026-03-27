@@ -14,27 +14,40 @@ jobs:
         arch: [amd64, arm64]
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout repo
+      uses: actions/checkout@v3
 
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
         go-version: ${{ matrix.go-version }}
 
+    - name: Configure environment
+      run: |
+        export GOPATH=$HOME/go
+        export GOBIN=$GOPATH/bin
+        export PATH=$PATH:$GOBIN
+        go env
+
     - name: Install gomobile
       run: |
-        # ตั้ง GOPATH และ PATH
         export GOPATH=$HOME/go
         export GOBIN=$GOPATH/bin
         export PATH=$PATH:$GOBIN
 
-        # ติดตั้ง gomobile รุ่นที่รองรับ Go 1.21
-        go install golang.org/x/mobile/cmd/gomobile@v0.0.0-20230818142203-6c1d6c3a0a4b
+        # ติดตั้ง gomobile commit ที่รองรับ Go 1.21
+        go install golang.org/x/mobile/cmd/gomobile@v0.0.0-20230615160246-8b7b1f1451f3
+
+        # ตรวจสอบว่า gomobile อยู่ใน PATH
+        gomobile version
 
         # Init gomobile
         gomobile init -v
 
     - name: Build Android
-      working-directory: libXray
       run: |
+        export GOPATH=$HOME/go
+        export GOBIN=$GOPATH/bin
+        export PATH=$PATH:$GOBIN
+
         python3 build/main.py android
