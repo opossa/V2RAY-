@@ -1,66 +1,50 @@
-name: Build Android
+name: Build Android AAR
 
 on:
   push:
     branches: [ main ]
-  pull_request:
+  workflow_dispatch:  # ให้กดรันเองได้
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: [1.25.8]
-        arch: [amd64, arm64]
-
+    
     steps:
-    - name: Checkout repo
+    - name: Checkout libXray
       uses: actions/checkout@v4
-
-    - name: Set up Go
+      with:
+        repository: XTLS/libXray
+        path: libXray
+        
+    - name: Setup Go
       uses: actions/setup-go@v5
       with:
-        go-version: ${{ matrix.go-version }}
-
-    - name: Configure environment
-      run: |
-        export GOPATH=$HOME/go
-        export GOBIN=$GOPATH/bin
-        export PATH=$PATH:$GOBIN
-        go env
-
-    - name: Install gomobile
-      run: |
-        export GOPATH=$HOME/go
-        export GOBIN=$GOPATH/bin
-        export PATH=$PATH:$GOBIN
+        go-version: '1.25'
         
-        # สำหรับ Go 1.25 ใช้ gomobile เวอร์ชันล่าสุด
-        go install golang.org/x/mobile/cmd/gomobile@latest
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
         
-        # ตรวจสอบการติดตั้ง
-        gomobile version
-        
-        # Init gomobile
-        gomobile init -v
-
-    - name: Install Android SDK dependencies
+    - name: Setup Android SDK
       run: |
         sudo apt-get update
-        sudo apt-get install -y \
-          openjdk-17-jdk \
-          android-sdk
-        
-        # ตั้งค่า ANDROID_HOME
+        sudo apt-get install -y android-sdk
         echo "ANDROID_HOME=/usr/lib/android-sdk" >> $GITHUB_ENV
-        echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
-
-    - name: Build Android
-      run: |
-        export GOPATH=$HOME/go
-        export GOBIN=$GOPATH/bin
-        export PATH=$PATH:$GOBIN
-        export ANDROID_HOME=/usr/lib/android-sdk
-        export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
         
-        python3 build/main.py android
+    - name: Install gomobile
+      run: |
+        go install golang.org/x/mobile/cmd/gomobile@latest
+        gomobile init
+        
+    - name: Build AAR
+      working-directory: ./libXray
+      run: |
+        gomobile bind -target=android -o libXray.aar ./...
+        
+    - name: Upload AAR
+      uses: actions/upload-artifact@v4
+      with:
+        name: libXray-android
+        path: ./libXray/libXray.aar
