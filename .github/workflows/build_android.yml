@@ -34,13 +34,13 @@ jobs:
         export GOPATH=$HOME/go
         export GOBIN=$GOPATH/bin
         export PATH=$PATH:$GOBIN
-
-        # ติดตั้ง gomobile commit ที่รองรับ Go 1.21
-        go install golang.org/x/mobile/cmd/gomobile@v0.0.0-20230615160246-8b7b1f1451f3
-
+        
+        # ใช้ gomobile เวอร์ชันล่าสุดที่ stable
+        go install golang.org/x/mobile/cmd/gomobile@latest
+        
         # ตรวจสอบว่า gomobile อยู่ใน PATH
         gomobile version
-
+        
         # Init gomobile
         gomobile init -v
 
@@ -49,5 +49,5 @@ jobs:
         export GOPATH=$HOME/go
         export GOBIN=$GOPATH/bin
         export PATH=$PATH:$GOBIN
-
+        
         python3 build/main.py android
