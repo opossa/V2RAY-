@@ -27,37 +27,50 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
         
-    - name: Setup Android SDK
+    - name: Setup Android SDK and NDK
       uses: android-actions/setup-android@v3
       with:
-        packages: 'platforms;android-35'
-        
-    - name: Install NDK with specific API level
-      run: |
-        # ตั้งค่า NDK version ที่รองรับ API 21+
-        echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
-        echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.2.9519653" >> $GITHUB_ENV
-        
-        # ดาวน์โหลด NDK version ที่ต้องการ
-        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;25.2.9519653"
+        packages: 'platforms;android-35 ndk;25.2.9519653'
         
     - name: Install gomobile
       run: |
         go install golang.org/x/mobile/cmd/gomobile@latest
         gomobile init
         
-    - name: Build AAR
+    - name: Install Python dependencies
       working-directory: ./libXray
       run: |
-        # กำหนด API level ให้ชัดเจน
+        # libXray ใช้ Python script สำหรับ build
+        python3 -m pip install --upgrade pip
+        
+    - name: Build AAR with libXray build script
+      working-directory: ./libXray
+      run: |
         export ANDROID_HOME=$ANDROID_HOME
         export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.2.9519653
+        export PATH=$PATH:$HOME/go/bin
         
-        # Build ด้วย API 21+
-        gomobile bind -target=android -androidapi=21 -o libXray.aar ./...
+        # ใช้ build script ตามที่ project แนะนำ
+        python3 build/main.py android
+        
+    - name: Find and upload AAR
+      run: |
+        # หาไฟล์ .aar ที่ถูก build
+        echo "Searching for AAR files..."
+        find ./libXray -name "*.aar" -type f
+        
+        # อัปโหลดไฟล์ AAR ที่พบ
+        aar_file=$(find ./libXray -name "*.aar" -type f | head -n 1)
+        if [ -n "$aar_file" ]; then
+          cp "$aar_file" ./libXray.aar
+          echo "AAR file copied to ./libXray.aar"
+        else
+          echo "No AAR file found!"
+          exit 1
+        fi
         
     - name: Upload AAR
       uses: actions/upload-artifact@v4
       with:
         name: libXray-android
-        path: ./libXray/libXray.aar
+        path: ./libXray.aar
