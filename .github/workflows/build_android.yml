@@ -10,15 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [1.21]
+        go-version: [1.25.8]
         arch: [amd64, arm64]
 
     steps:
     - name: Checkout repo
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go-version }}
 
@@ -35,19 +35,32 @@ jobs:
         export GOBIN=$GOPATH/bin
         export PATH=$PATH:$GOBIN
         
-        # ใช้ gomobile เวอร์ชันล่าสุดที่ stable
+        # สำหรับ Go 1.25 ใช้ gomobile เวอร์ชันล่าสุด
         go install golang.org/x/mobile/cmd/gomobile@latest
         
-        # ตรวจสอบว่า gomobile อยู่ใน PATH
+        # ตรวจสอบการติดตั้ง
         gomobile version
         
         # Init gomobile
         gomobile init -v
+
+    - name: Install Android SDK dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          openjdk-17-jdk \
+          android-sdk
+        
+        # ตั้งค่า ANDROID_HOME
+        echo "ANDROID_HOME=/usr/lib/android-sdk" >> $GITHUB_ENV
+        echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
 
     - name: Build Android
       run: |
         export GOPATH=$HOME/go
         export GOBIN=$GOPATH/bin
         export PATH=$PATH:$GOBIN
+        export ANDROID_HOME=/usr/lib/android-sdk
+        export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
         
         python3 build/main.py android
