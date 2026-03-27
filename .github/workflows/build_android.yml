@@ -1,0 +1,32 @@
+name: Build Android
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: [1.25.8]
+        arch: [arm64, amd64]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ matrix.go-version }}
+
+    - name: Install gomobile
+      run: |
+        go install golang.org/x/mobile/cmd/gomobile@latest
+        export PATH=$PATH:$(go env GOPATH)/bin
+        gomobile init
+
+    - name: Build Android
+      run: |
+        python3 build/main.py android
